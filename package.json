@@ -1,0 +1,43 @@
+{
+  "name": "okahistory",
+  "version": "0.0.1",
+  "main": "./dist/okahistory.min.js",
+  "module": "./dist/okahistory.esm.min.js",
+  "types": "./dist/okahistory.d.ts",
+  "sideEffects": false,
+  "repository": "https://github.com/miyanokomiya/okahistory.git",
+  "author": "miyanokomiya <tomoya.hstexze24632@gmail.com>",
+  "license": "MIT",
+  "private": false,
+  "scripts": {
+    "lint:es": "yarn eslint ./src ./spec ./*.js --ext .js,.ts",
+    "lint:json": "yarn prettier -c ./*.json ./.*.json",
+    "lint": "yarn lint:es && yarn lint:json",
+    "lint:fix": "yarn lint:es --fix && yarn lint:json --write",
+    "test": "jest --coverage",
+    "build": "rm -rf ./dist && yarn bili --format cjs-min --format esm-min",
+    "prepublishOnly": "yarn build"
+  },
+  "devDependencies": {
+    "@types/jest": "^27.0.1",
+    "@typescript-eslint/eslint-plugin": "^4.29.0",
+    "@typescript-eslint/parser": "^4.29.0",
+    "babel-jest": "^27.1.1",
+    "bili": "^5.0.5",
+    "eslint": "^7.14.0",
+    "eslint-config-prettier": "^8.1.0",
+    "eslint-config-standard": "^16.0.2",
+    "eslint-plugin-import": "^2.23.1",
+    "eslint-plugin-jest": "^24.4.0",
+    "eslint-plugin-node": "^11.0.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "eslint-plugin-promise": "^5.1.0",
+    "eslint-plugin-standard": "^5.0.0",
+    "jest": "^27.1.1",
+    "prettier": "^2.4.0",
+    "rollup-plugin-typescript2": "^0.30.0",
+    "ts-jest": "^27.0.4",
+    "tslib": "^2.3.1",
+    "typescript": "^4.4.2"
+  }
+}
