@@ -112,4 +112,40 @@ describe('useHistory', () => {
       expect(state.value).toBe(0)
     })
   })
+
+  describe('serialize & deserialize', () => {
+    it('should serialize & deserialize the stack', () => {
+      const { target, state } = setup()
+
+      target.execAction({
+        name: 'ope_a',
+        args: 10,
+      })
+      target.execAction({
+        name: 'ope_a',
+        args: 20,
+      })
+
+      const data = target.serialize()
+      const another = useHistory()
+
+      another.registReducer('ope_a', {
+        undo(before: number) {
+          state.value = before
+        },
+        redo(after: number) {
+          const before = state.value
+          state.value = after
+          return before
+        },
+      })
+
+      another.deserialize(data)
+      expect(another.getCurrentIndex()).toBe(1)
+      another.undo()
+      expect(state.value).toBe(10)
+      another.redo()
+      expect(state.value).toBe(20)
+    })
+  })
 })

@@ -16,6 +16,11 @@ export interface SavedAction<RedoArgs, UndoArgs> {
   undoArgs: UndoArgs
 }
 
+interface SerializedState {
+  version: '0' // independent on the version in package.json
+  stack: SavedAction<unknown, unknown>[]
+}
+
 interface HistoryModule {
   registReducer<UndoArgs, RedoArgs>(
     name: ActionName,
@@ -25,11 +30,13 @@ interface HistoryModule {
   redo(): void
   undo(): void
   getCurrentIndex(): number
+  serialize(): SerializedState
+  deserialize(state: SerializedState): void
 }
 
 export function useHistory(): HistoryModule {
   const reducerMap: { [name: ActionName]: Reducer<unknown, unknown> } = {}
-  const historyStack: SavedAction<unknown, unknown>[] = []
+  let historyStack: SavedAction<unknown, unknown>[] = []
   let currentStackIndex = -1
 
   function registReducer<UndoArgs, RedoArgs>(
@@ -79,11 +86,25 @@ export function useHistory(): HistoryModule {
     }
   }
 
+  function serialize(): SerializedState {
+    return { version: '0', stack: historyStack }
+  }
+
+  /**
+   * just deserializes and does not call redo operations
+   */
+  function deserialize(state: SerializedState): void {
+    historyStack = state.stack.concat()
+    currentStackIndex = historyStack.length - 1
+  }
+
   return {
     registReducer,
     execAction,
     redo,
     undo,
     getCurrentIndex: () => currentStackIndex,
+    serialize,
+    deserialize,
   }
 }
