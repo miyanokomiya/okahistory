@@ -8,6 +8,7 @@ export interface Action<RedoArgs> {
 export interface Reducer<RedoArgs, UndoArgs> {
   redo(redoState: RedoArgs): UndoArgs
   undo(undoState: UndoArgs): void
+  getLabel?: (action: Action<RedoArgs>) => string
 }
 
 export interface SavedAction<RedoArgs, UndoArgs> {
@@ -18,7 +19,13 @@ export interface SavedAction<RedoArgs, UndoArgs> {
 
 interface SerializedState {
   version: '0' // independent on the version in package.json
-  stack: SavedAction<unknown, unknown>[]
+  stack: SavedAction<any, any>[]
+}
+
+interface ActionSummary {
+  name: ActionName
+  label: string
+  done: boolean
 }
 
 interface HistoryModule {
@@ -30,13 +37,14 @@ interface HistoryModule {
   redo(): void
   undo(): void
   getCurrentIndex(): number
+  getActionSummaries(): ActionSummary[]
   serialize(): SerializedState
   deserialize(state: SerializedState): void
 }
 
 export function useHistory(): HistoryModule {
-  const reducerMap: { [name: ActionName]: Reducer<unknown, unknown> } = {}
-  let historyStack: SavedAction<unknown, unknown>[] = []
+  const reducerMap: { [name: ActionName]: Reducer<any, any> } = {}
+  let historyStack: SavedAction<any, any>[] = []
   let currentStackIndex = -1
 
   function registReducer<UndoArgs, RedoArgs>(
@@ -47,9 +55,7 @@ export function useHistory(): HistoryModule {
   }
 
   function execAction<RedoArgs>(action: Action<RedoArgs>): void {
-    const reducer = reducerMap[action.name]
-    if (!reducer) throw new Error(`not found the action: ${action.name}`)
-
+    const reducer = getReducer(reducerMap, action.name)
     const undoArgs = reducer.redo(action.args)
 
     pushHistory({
@@ -59,7 +65,7 @@ export function useHistory(): HistoryModule {
     })
   }
 
-  function pushHistory(savedAction: SavedAction<unknown, unknown>): void {
+  function pushHistory(savedAction: SavedAction<any, any>): void {
     if (currentStackIndex < historyStack.length - 1) {
       historyStack.splice(
         currentStackIndex + 1,
@@ -86,6 +92,17 @@ export function useHistory(): HistoryModule {
     }
   }
 
+  function getActionSummaries(): ActionSummary[] {
+    return historyStack.map((a, i) => {
+      const reducer = getReducer(reducerMap, a.name)
+      return {
+        name: a.name,
+        label: reducer.getLabel?.({ name: a.name, args: a.redoArgs }) ?? a.name,
+        done: i <= currentStackIndex,
+      }
+    })
+  }
+
   function serialize(): SerializedState {
     return { version: '0', stack: historyStack }
   }
@@ -104,7 +121,17 @@ export function useHistory(): HistoryModule {
     redo,
     undo,
     getCurrentIndex: () => currentStackIndex,
+    getActionSummaries,
     serialize,
     deserialize,
   }
+}
+
+function getReducer(
+  reducerMap: { [name: ActionName]: Reducer<any, any> },
+  name: ActionName
+): Reducer<any, any> {
+  const reducer = reducerMap[name]
+  if (!reducer) throw new Error(`not found a reducer for the action: ${name}`)
+  return reducer
 }

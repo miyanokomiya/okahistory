@@ -16,6 +16,18 @@ describe('useHistory', () => {
       },
     })
 
+    target.registReducer('ope_b', {
+      undo(before: number) {
+        state.value = before
+      },
+      redo(after: number) {
+        const before = state.value
+        state.value = after * 2
+        return before
+      },
+      getLabel: (action) => `label_${action.name}`,
+    })
+
     return {
       target,
       state,
@@ -29,7 +41,7 @@ describe('useHistory', () => {
         name: 'unknown',
         args: 10,
       })
-    ).toThrow('not found the action: unknown')
+    ).toThrow('not found a reducer for the action: unknown')
   })
 
   it('should save actions', () => {
@@ -110,6 +122,32 @@ describe('useHistory', () => {
       expect(state.value).toBe(0)
       target.undo()
       expect(state.value).toBe(0)
+    })
+  })
+
+  describe('getActionSummaries', () => {
+    it('should return action summaries', () => {
+      const { target } = setup()
+
+      target.execAction({
+        name: 'ope_a',
+        args: 10,
+      })
+      target.execAction({
+        name: 'ope_b',
+        args: 20,
+      })
+
+      expect(target.getActionSummaries()).toEqual([
+        { name: 'ope_a', label: 'ope_a', done: true },
+        { name: 'ope_b', label: 'label_ope_b', done: true },
+      ])
+
+      target.undo()
+      expect(target.getActionSummaries()).toEqual([
+        { name: 'ope_a', label: 'ope_a', done: true },
+        { name: 'ope_b', label: 'label_ope_b', done: false },
+      ])
     })
   })
 
