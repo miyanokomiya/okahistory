@@ -152,7 +152,7 @@ describe('useHistory', () => {
   })
 
   describe('serialize & deserialize', () => {
-    it('should serialize & deserialize the stack', () => {
+    it('should serialize & deserialize the stack and the index', () => {
       const { target, state } = setup()
 
       target.execAction({
@@ -163,6 +163,7 @@ describe('useHistory', () => {
         name: 'ope_a',
         args: 20,
       })
+      target.undo()
 
       const data = target.serialize()
       const another = useHistory()
@@ -179,8 +180,10 @@ describe('useHistory', () => {
       })
 
       another.deserialize(data)
-      expect(another.getCurrentIndex()).toBe(1)
+      expect(another.getCurrentIndex()).toBe(0)
       another.undo()
+      expect(state.value).toBe(0)
+      another.redo()
       expect(state.value).toBe(10)
       another.redo()
       expect(state.value).toBe(20)

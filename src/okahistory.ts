@@ -20,6 +20,7 @@ export interface SavedAction<RedoArgs, UndoArgs> {
 interface SerializedState {
   version: '0' // independent on the version in package.json
   stack: SavedAction<any, any>[]
+  currentStackIndex: number
 }
 
 interface ActionSummary {
@@ -104,7 +105,7 @@ export function useHistory(): HistoryModule {
   }
 
   function serialize(): SerializedState {
-    return { version: '0', stack: historyStack }
+    return { version: '0', stack: historyStack, currentStackIndex }
   }
 
   /**
@@ -112,7 +113,7 @@ export function useHistory(): HistoryModule {
    */
   function deserialize(state: SerializedState): void {
     historyStack = state.stack.concat()
-    currentStackIndex = historyStack.length - 1
+    currentStackIndex = state.currentStackIndex
   }
 
   return {
