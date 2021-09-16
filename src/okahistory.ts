@@ -62,7 +62,7 @@ interface ActionSummary {
 }
 
 interface HistoryModule {
-  registReducer<UndoArgs, RedoArgs>(
+  defineReducer<UndoArgs, RedoArgs>(
     name: ActionName,
     reducer: Reducer<RedoArgs, UndoArgs>
   ): void
@@ -84,7 +84,7 @@ export function useHistory(): HistoryModule {
     historyStack = val
   }
 
-  function registReducer<UndoArgs, RedoArgs>(
+  function defineReducer<UndoArgs, RedoArgs>(
     name: ActionName,
     reducer: Reducer<RedoArgs, UndoArgs>
   ) {
@@ -172,7 +172,7 @@ export function useHistory(): HistoryModule {
   }
 
   return {
-    registReducer,
+    defineReducer,
     execAction,
     redo,
     undo,

@@ -5,7 +5,7 @@ describe('useHistory', () => {
     const target = useHistory()
     const state = { value: 0, value2: 0 }
 
-    target.registReducer('ope_a', {
+    target.defineReducer('ope_a', {
       undo(before: number) {
         state.value = before
       },
@@ -16,7 +16,7 @@ describe('useHistory', () => {
       },
     })
 
-    target.registReducer('ope_b', {
+    target.defineReducer('ope_b', {
       undo(before: number) {
         state.value2 = before
       },
@@ -201,7 +201,7 @@ describe('useHistory', () => {
       const data = target.serialize()
       const another = useHistory()
 
-      another.registReducer('ope_a', {
+      another.defineReducer('ope_a', {
         undo(before: number) {
           state.value = before
         },
