@@ -13,7 +13,30 @@ yarn add okahistory
 ```js
 import { useHistory } from 'okahistory'
 
-// TODO
+const state = { count: 0 }
+const history = useHistory()
+
+// define your reducers
+history.defineReducer('ACTION_A, {
+  undo(undoArgs) {
+    state.count = undoArgs
+  },
+  redo(redoArgs) {
+    const undoArgs = state.count
+    state.count = redoArgs
+    return undoArgs
+  },
+})
+
+// exec
+history.execAction({
+  name: 'ACTION_A,
+  args: 1,
+})
+
+// undo & redo
+history.undo()
+history.redo()
 ```
 
 ## commnad
