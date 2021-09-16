@@ -1,10 +1,17 @@
 export type ActionName = string
 
 export interface Action<RedoArgs> {
+  /**
+   * Unique name of this action.
+   * This value may be serialized.
+   */
   name: ActionName
+  /**
+   * Args to exec redo operation of this action.
+   */
   args: RedoArgs
   /**
-   * The actions having the same seriesKey are treated as the same series action.
+   * The actions having the same seriesKey are treated as the same series.
    * When new action having seriesKey is added,
    * old actions having the same seriesKey are removed
    * and the new action inherits the first undoArgs.
@@ -22,8 +29,16 @@ export interface Action<RedoArgs> {
 }
 
 export interface Reducer<RedoArgs, UndoArgs> {
+  /**
+   * should return args to exec undo operation.
+   * e.g. snapshot of the state
+   */
   redo(redoState: RedoArgs): UndoArgs
   undo(undoState: UndoArgs): void
+  /**
+   * should return a label of ActionSummary for target action.
+   * if this prop is omitted, action's name is used.
+   */
   getLabel?: (action: Action<RedoArgs>) => string
 }
 
