@@ -3,7 +3,7 @@ import { useHistory } from '../src/okahistory'
 describe('useHistory', () => {
   function setup() {
     const target = useHistory()
-    const state = { value: 0 }
+    const state = { value: 0, value2: 0 }
 
     target.registReducer('ope_a', {
       undo(before: number) {
@@ -18,11 +18,11 @@ describe('useHistory', () => {
 
     target.registReducer('ope_b', {
       undo(before: number) {
-        state.value = before
+        state.value2 = before
       },
       redo(after: number) {
-        const before = state.value
-        state.value = after * 2
+        const before = state.value2
+        state.value2 = after
         return before
       },
       getLabel: (action) => `label_${action.name}`,
@@ -34,30 +34,63 @@ describe('useHistory', () => {
     }
   }
 
-  it('should throw if unknown action is called', () => {
-    const { target } = setup()
-    expect(() =>
+  describe('execAction', () => {
+    it('should throw if unknown action is called', () => {
+      const { target } = setup()
+      expect(() =>
+        target.execAction({
+          name: 'unknown',
+          args: 10,
+        })
+      ).toThrow('not found a reducer for the action: unknown')
+    })
+
+    it('should save actions', () => {
+      const { target, state } = setup()
+
       target.execAction({
-        name: 'unknown',
+        name: 'ope_a',
         args: 10,
       })
-    ).toThrow('not found a reducer for the action: unknown')
-  })
+      expect(state.value).toBe(10)
 
-  it('should save actions', () => {
-    const { target, state } = setup()
-
-    target.execAction({
-      name: 'ope_a',
-      args: 10,
+      target.execAction({
+        name: 'ope_a',
+        args: 20,
+      })
+      expect(state.value).toBe(20)
     })
-    expect(state.value).toBe(10)
 
-    target.execAction({
-      name: 'ope_a',
-      args: 20,
+    describe('when the same seriesKey is passed', () => {
+      it('replace the last item having the seriesKey', () => {
+        const { target, state } = setup()
+
+        target.execAction({
+          name: 'ope_a',
+          args: 10,
+          seriesKey: 'a',
+        })
+        target.execAction({
+          name: 'ope_b',
+          args: 20,
+        })
+        target.execAction({
+          name: 'ope_a',
+          args: 30,
+          seriesKey: 'a',
+        })
+
+        expect(state.value).toBe(30)
+        expect(state.value2).toBe(20)
+        expect(target.getCurrentIndex()).toBe(1)
+        target.undo()
+        expect(state.value).toBe(0)
+        expect(state.value2).toBe(20)
+        target.undo()
+        expect(state.value).toBe(0)
+        expect(state.value2).toBe(0)
+      })
     })
-    expect(state.value).toBe(20)
   })
 
   describe('undo & redo', () => {

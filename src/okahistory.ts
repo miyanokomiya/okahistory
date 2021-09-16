@@ -3,6 +3,22 @@ export type ActionName = string
 export interface Action<RedoArgs> {
   name: ActionName
   args: RedoArgs
+  /**
+   * The actions having the same seriesKey are treated as the same series action.
+   * When new action having seriesKey is added,
+   * old actions having the same seriesKey are removed
+   * and the new action inherits the first undoArgs.
+   * e.g.
+   *   when
+   *   0: redo, a = 1,  undo: a = 0, seriesKey = 'a'
+   *   1: redo, b = 10, undo: b = 0
+   *   add new action
+   *   redo: a = 2, seriesKey = 'a'
+   *   then
+   *   0: redo: b = 10, undo: b = 0
+   *   1: redo: a = 2,  undo: a = 0, seriesKey = 'a'
+   */
+  seriesKey?: string
 }
 
 export interface Reducer<RedoArgs, UndoArgs> {
@@ -15,6 +31,7 @@ export interface SavedAction<RedoArgs, UndoArgs> {
   name: ActionName
   redoArgs: RedoArgs
   undoArgs: UndoArgs
+  seriesKey?: string
 }
 
 interface SerializedState {
@@ -48,6 +65,10 @@ export function useHistory(): HistoryModule {
   let historyStack: SavedAction<any, any>[] = []
   let currentStackIndex = -1
 
+  function setHistoryStack(val: SavedAction<any, any>[]): void {
+    historyStack = val
+  }
+
   function registReducer<UndoArgs, RedoArgs>(
     name: ActionName,
     reducer: Reducer<RedoArgs, UndoArgs>
@@ -63,6 +84,7 @@ export function useHistory(): HistoryModule {
       name: action.name,
       redoArgs: action.args,
       undoArgs,
+      seriesKey: action.seriesKey,
     })
   }
 
@@ -73,7 +95,25 @@ export function useHistory(): HistoryModule {
         historyStack.length - currentStackIndex
       )
     }
-    historyStack.push(savedAction)
+
+    if (savedAction.seriesKey) {
+      const splitedByKey = splitArray(historyStack, (a) =>
+        hasSameSeriesKey(a, savedAction)
+      )
+      setHistoryStack(splitedByKey.isFalse)
+
+      historyStack.push({
+        ...savedAction,
+        // last action should inhert undoArgs of the first action having the same seriesKey
+        undoArgs:
+          splitedByKey.isTrue.length > 0
+            ? splitedByKey.isTrue[0].undoArgs
+            : savedAction.undoArgs,
+      })
+    } else {
+      historyStack.push(savedAction)
+    }
+
     currentStackIndex = historyStack.length - 1
   }
 
@@ -112,7 +152,7 @@ export function useHistory(): HistoryModule {
    * just deserializes and does not call redo operations
    */
   function deserialize(state: SerializedState): void {
-    historyStack = state.stack.concat()
+    setHistoryStack(state.stack.concat())
     currentStackIndex = state.currentStackIndex
   }
 
@@ -135,4 +175,24 @@ function getReducer(
   const reducer = reducerMap[name]
   if (!reducer) throw new Error(`not found a reducer for the action: ${name}`)
   return reducer
+}
+
+function hasSameSeriesKey(
+  a: { seriesKey?: string },
+  b: { seriesKey?: string }
+): boolean {
+  return !!a.seriesKey && !!b.seriesKey && a.seriesKey === b.seriesKey
+}
+
+function splitArray<T>(
+  arr: T[],
+  checkFn: (item: T) => boolean
+): { isTrue: T[]; isFalse: T[] } {
+  const ret: { isTrue: T[]; isFalse: T[] } = { isTrue: [], isFalse: [] }
+
+  arr.forEach((item) =>
+    checkFn(item) ? ret.isTrue.push(item) : ret.isFalse.push(item)
+  )
+
+  return ret
 }
