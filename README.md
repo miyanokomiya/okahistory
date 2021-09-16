@@ -29,7 +29,7 @@ history.defineReducer('ACTION_A, {
 })
 
 // exec
-history.execAction({
+history.dispatch({
   name: 'ACTION_A,
   args: 1,
 })

@@ -66,7 +66,7 @@ interface HistoryModule {
     name: ActionName,
     reducer: Reducer<RedoArgs, UndoArgs>
   ): void
-  execAction<RedoArgs>(action: Action<RedoArgs>): void
+  dispatch<RedoArgs>(action: Action<RedoArgs>): void
   redo(): void
   undo(): void
   getCurrentIndex(): number
@@ -91,7 +91,7 @@ export function useHistory(): HistoryModule {
     reducerMap[name] = reducer
   }
 
-  function execAction<RedoArgs>(action: Action<RedoArgs>): void {
+  function dispatch<RedoArgs>(action: Action<RedoArgs>): void {
     const reducer = getReducer(reducerMap, action.name)
     const undoArgs = reducer.redo(action.args)
 
@@ -173,7 +173,7 @@ export function useHistory(): HistoryModule {
 
   return {
     defineReducer,
-    execAction,
+    dispatch,
     redo,
     undo,
     getCurrentIndex: () => currentStackIndex,

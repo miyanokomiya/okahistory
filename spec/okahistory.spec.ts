@@ -34,11 +34,11 @@ describe('useHistory', () => {
     }
   }
 
-  describe('execAction', () => {
+  describe('dispatch', () => {
     it('should throw if unknown action is called', () => {
       const { target } = setup()
       expect(() =>
-        target.execAction({
+        target.dispatch({
           name: 'unknown',
           args: 10,
         })
@@ -48,13 +48,13 @@ describe('useHistory', () => {
     it('should save actions', () => {
       const { target, state } = setup()
 
-      target.execAction({
+      target.dispatch({
         name: 'ope_a',
         args: 10,
       })
       expect(state.value).toBe(10)
 
-      target.execAction({
+      target.dispatch({
         name: 'ope_a',
         args: 20,
       })
@@ -65,16 +65,16 @@ describe('useHistory', () => {
       it('replace the last item having the seriesKey', () => {
         const { target, state } = setup()
 
-        target.execAction({
+        target.dispatch({
           name: 'ope_a',
           args: 10,
           seriesKey: 'a',
         })
-        target.execAction({
+        target.dispatch({
           name: 'ope_b',
           args: 20,
         })
-        target.execAction({
+        target.dispatch({
           name: 'ope_a',
           args: 30,
           seriesKey: 'a',
@@ -97,11 +97,11 @@ describe('useHistory', () => {
     it('should undo & redo', () => {
       const { target, state } = setup()
 
-      target.execAction({
+      target.dispatch({
         name: 'ope_a',
         args: 10,
       })
-      target.execAction({
+      target.dispatch({
         name: 'ope_a',
         args: 20,
       })
@@ -131,18 +131,18 @@ describe('useHistory', () => {
     it('should dispose redo branch if new action is pushed', () => {
       const { target, state } = setup()
 
-      target.execAction({
+      target.dispatch({
         name: 'ope_a',
         args: 10,
       })
-      target.execAction({
+      target.dispatch({
         name: 'ope_a',
         args: 20,
       })
       expect(state.value).toBe(20)
       target.undo()
       expect(state.value).toBe(10)
-      target.execAction({
+      target.dispatch({
         name: 'ope_a',
         args: 30,
       })
@@ -162,11 +162,11 @@ describe('useHistory', () => {
     it('should return action summaries', () => {
       const { target } = setup()
 
-      target.execAction({
+      target.dispatch({
         name: 'ope_a',
         args: 10,
       })
-      target.execAction({
+      target.dispatch({
         name: 'ope_b',
         args: 20,
       })
@@ -188,11 +188,11 @@ describe('useHistory', () => {
     it('should serialize & deserialize the stack and the index', () => {
       const { target, state } = setup()
 
-      target.execAction({
+      target.dispatch({
         name: 'ope_a',
         args: 10,
       })
-      target.execAction({
+      target.dispatch({
         name: 'ope_a',
         args: 20,
       })
