@@ -222,4 +222,17 @@ describe('useHistory', () => {
       expect(state.value).toBe(20)
     })
   })
+
+  describe('clear', () => {
+    it('should clear all state', () => {
+      const { target } = setup()
+      target.dispatch({
+        name: 'ope_a',
+        args: 20,
+      })
+      expect(target.getCurrentIndex()).toBe(0)
+      target.clear()
+      expect(target.getCurrentIndex()).toBe(-1)
+    })
+  })
 })

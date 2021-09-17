@@ -73,6 +73,7 @@ interface HistoryModule {
   getActionSummaries(): ActionSummary[]
   serialize(): SerializedState
   deserialize(state: SerializedState): void
+  clear(): void
 }
 
 export function useHistory(): HistoryModule {
@@ -171,6 +172,11 @@ export function useHistory(): HistoryModule {
     currentStackIndex = state.currentStackIndex
   }
 
+  function clear(): void {
+    setHistoryStack([])
+    currentStackIndex = -1
+  }
+
   return {
     defineReducer,
     dispatch,
@@ -180,6 +186,7 @@ export function useHistory(): HistoryModule {
     getActionSummaries,
     serialize,
     deserialize,
+    clear,
   }
 }
 
