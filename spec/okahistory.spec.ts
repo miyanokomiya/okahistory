@@ -1,8 +1,9 @@
+import type { HistoryModuleOptions } from '../src/okahistory'
 import { useHistory } from '../src/okahistory'
 
 describe('useHistory', () => {
-  function setup() {
-    const target = useHistory()
+  function setup(options?: HistoryModuleOptions) {
+    const target = useHistory(options)
     const state = { value: 0, value2: 0 }
 
     target.defineReducer('ope_a', {
@@ -59,6 +60,32 @@ describe('useHistory', () => {
         args: 20,
       })
       expect(state.value).toBe(20)
+    })
+
+    describe('option: max', () => {
+      it('should drop old history if the stack length is larger than max of the option', () => {
+        const { target, state } = setup({ max: 2 })
+        target.dispatch({ name: 'ope_a', args: 1 })
+        expect(target.getActionSummaries()).toEqual([
+          { name: 'ope_a', label: 'ope_a', done: true },
+        ])
+        target.dispatch({ name: 'ope_a', args: 2 })
+        expect(target.getActionSummaries()).toEqual([
+          { name: 'ope_a', label: 'ope_a', done: true },
+          { name: 'ope_a', label: 'ope_a', done: true },
+        ])
+        target.dispatch({ name: 'ope_a', args: 3 })
+        expect(target.getActionSummaries()).toEqual([
+          { name: 'ope_a', label: 'ope_a', done: true },
+          { name: 'ope_a', label: 'ope_a', done: true },
+        ])
+        target.undo()
+        expect(state.value).toBe(2)
+        target.undo()
+        expect(state.value).toBe(1)
+        target.undo()
+        expect(state.value).toBe(1)
+      })
     })
 
     describe('when the same seriesKey is passed', () => {

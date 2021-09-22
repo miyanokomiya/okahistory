@@ -76,7 +76,17 @@ interface HistoryModule {
   clear(): void
 }
 
-export function useHistory(): HistoryModule {
+export interface HistoryModuleOptions {
+  /**
+   * max history length
+   * default: 64
+   */
+  max?: number
+}
+
+export function useHistory(options: HistoryModuleOptions = {}): HistoryModule {
+  const max = options.max ?? 64
+
   const reducerMap: { [name: ActionName]: Reducer<any, any> } = {}
   let historyStack: SavedAction<any, any>[] = []
   let currentStackIndex = -1
@@ -128,6 +138,10 @@ export function useHistory(): HistoryModule {
       })
     } else {
       historyStack.push(savedAction)
+    }
+
+    if (historyStack.length > max) {
+      historyStack.shift()
     }
 
     currentStackIndex = historyStack.length - 1
