@@ -40,6 +40,14 @@ export interface Reducer<RedoArgs, UndoArgs> {
    * if this prop is omitted, action's name is used.
    */
   getLabel?: (action: Action<RedoArgs>) => string
+  /**
+   * if this value is true, ignore the same action dispatched one after another
+   */
+  ignoreDuplication?: boolean
+  /**
+   * check whether two actions are same to ignore duplication (see ignoreDuplication)
+   */
+  checkDuplicationFn?: (a: RedoArgs, b: RedoArgs) => boolean
 }
 
 export interface SavedAction<RedoArgs, UndoArgs> {
@@ -104,12 +112,25 @@ export function useHistory(options: HistoryModuleOptions = {}): HistoryModule {
 
   function dispatch<RedoArgs>(action: Action<RedoArgs>): void {
     const reducer = getReducer(reducerMap, action.name)
-    const undoArgs = reducer.redo(action.args)
+
+    // check duplication
+    if (reducer.ignoreDuplication && currentStackIndex !== -1) {
+      const currentAction = historyStack[currentStackIndex]
+      if (
+        currentAction.name === action.name &&
+        (reducer.checkDuplicationFn ?? defaultCheckDuplicationFn)(
+          action.args,
+          currentAction.redoArgs
+        )
+      ) {
+        return
+      }
+    }
 
     pushHistory({
       name: action.name,
       redoArgs: action.args,
-      undoArgs,
+      undoArgs: reducer.redo(action.args),
       seriesKey: action.seriesKey,
     })
   }
@@ -231,4 +252,8 @@ function splitArray<T>(
   )
 
   return ret
+}
+
+function defaultCheckDuplicationFn(a: unknown, b: unknown): boolean {
+  return a === b
 }

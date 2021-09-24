@@ -262,4 +262,29 @@ describe('useHistory', () => {
       expect(target.getCurrentIndex()).toBe(-1)
     })
   })
+
+  describe('ignoreDuplication', () => {
+    const target = useHistory()
+    const state = { value: 0 }
+
+    target.defineReducer('ope_a', {
+      undo(before: number) {
+        state.value = before
+      },
+      redo(after: number) {
+        const before = state.value
+        state.value = after
+        return before
+      },
+      ignoreDuplication: true,
+      checkDuplicationFn: (a, b) => a === b,
+    })
+
+    target.dispatch({ name: 'ope_a', args: 1 })
+    expect(target.getCurrentIndex()).toBe(0)
+    target.dispatch({ name: 'ope_a', args: 2 })
+    expect(target.getCurrentIndex()).toBe(1)
+    target.dispatch({ name: 'ope_a', args: 2 })
+    expect(target.getCurrentIndex()).toBe(1)
+  })
 })
