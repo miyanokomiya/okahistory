@@ -10,27 +10,29 @@ This is a convenient tool for the features of undo-redo operations.
 yarn add okahistory
 ```
 
-```js
+```ts
+import type { Reducer } from 'okahistory'
 import { useHistory } from 'okahistory'
 
 const state = { count: 0 }
 const history = useHistory()
 
 // define your reducers
-history.defineReducer('ACTION_A, {
-  undo(undoArgs) {
-    state.count = undoArgs
+const reducerA: Reducer<number, number> = {
+  undo(before) {
+    state.count = before
   },
-  redo(redoArgs) {
-    const undoArgs = state.count
-    state.count = redoArgs
-    return undoArgs
+  redo(after) {
+    const before = state.count
+    state.count = after
+    return before
   },
-})
+}
+const dispatch = history.defineReducers({ ACTION_A: reducerA })
 
-// exec
-history.dispatch({
-  name: 'ACTION_A,
+// dispatch an action
+dispatch({
+  name: 'ACTION_A',
   args: 1,
 })
 

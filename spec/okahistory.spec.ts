@@ -1,4 +1,4 @@
-import type { HistoryModuleOptions } from '../src/okahistory'
+import type { HistoryModuleOptions, Reducer } from '../src/okahistory'
 import { useHistory } from '../src/okahistory'
 
 describe('useHistory', () => {
@@ -34,6 +34,40 @@ describe('useHistory', () => {
       state,
     }
   }
+
+  describe('defineReducers', () => {
+    it('should define reducers and return a fucntion to dispatch them', () => {
+      const target = useHistory()
+      const state = { value: 0, value2: '0' }
+
+      const opeA: Reducer<number, number> = {
+        undo(before: number) {
+          state.value = before
+        },
+        redo(after: number) {
+          const before = state.value
+          state.value = after
+          return before
+        },
+      }
+      const opeB: Reducer<string, { value: number; value2: string }> = {
+        undo(before) {
+          state.value2 = before.value2
+        },
+        redo(after: string) {
+          const before = { ...state }
+          state.value2 = after
+          return before
+        },
+      }
+      const dispatch = target.defineReducers({ opeA, opeB })
+
+      dispatch({ name: 'opeA', args: 10 })
+      expect(state).toEqual({ value: 10, value2: '0' })
+      dispatch({ name: 'opeB', args: '20' })
+      expect(state).toEqual({ value: 10, value2: '20' })
+    })
+  })
 
   describe('dispatch', () => {
     it('should throw if unknown action is called', () => {
