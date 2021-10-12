@@ -74,6 +74,13 @@ interface HistoryModule {
     name: ActionName,
     reducer: Reducer<RedoArgs, UndoArgs>
   ): void
+  defineReducers<T extends { [name: ActionName]: Reducer<any, any> }>(
+    reducers: T
+  ): <K extends keyof T>(a: {
+    name: K
+    args: Parameters<T[K]['redo']>[0]
+  }) => void
+  // ): <K extends keyof T>(name: K, args: Parameters<T[K]['redo']>[0]) => void
   dispatch<RedoArgs>(action: Action<RedoArgs>): void
   redo(): void
   undo(): void
@@ -108,6 +115,16 @@ export function useHistory(options: HistoryModuleOptions = {}): HistoryModule {
     reducer: Reducer<RedoArgs, UndoArgs>
   ) {
     reducerMap[name] = reducer
+  }
+
+  function defineReducers(reducers: {
+    [name: ActionName]: Reducer<unknown, unknown>
+  }) {
+    for (const name in reducers) {
+      reducerMap[name] = reducers[name]
+    }
+
+    return dispatch as any
   }
 
   function dispatch<RedoArgs>(action: Action<RedoArgs>): void {
@@ -214,6 +231,7 @@ export function useHistory(options: HistoryModuleOptions = {}): HistoryModule {
 
   return {
     defineReducer,
+    defineReducers,
     dispatch,
     redo,
     undo,
