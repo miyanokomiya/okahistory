@@ -2,8 +2,9 @@ import type { HistoryModuleOptions } from '../src/okahistory'
 import { useHistory } from '../src/okahistory'
 
 describe('useHistory', () => {
-  function setup(options?: HistoryModuleOptions) {
-    const target = useHistory(options)
+  function setup(options: HistoryModuleOptions = {}) {
+    const onUpdated = jest.fn()
+    const target = useHistory({ onUpdated, ...options })
     const state = { value: 0, value2: 0 }
 
     target.defineReducer('ope_a', {
@@ -32,6 +33,7 @@ describe('useHistory', () => {
     return {
       target,
       state,
+      onUpdated,
     }
   }
 
@@ -95,19 +97,21 @@ describe('useHistory', () => {
     })
 
     it('should save actions', () => {
-      const { target, state } = setup()
+      const { target, state, onUpdated } = setup()
 
       target.dispatch({
         name: 'ope_a',
         args: 10,
       })
       expect(state.value).toBe(10)
+      expect(onUpdated).toHaveReturnedTimes(1)
 
       target.dispatch({
         name: 'ope_a',
         args: 20,
       })
       expect(state.value).toBe(20)
+      expect(onUpdated).toHaveReturnedTimes(2)
     })
 
     it('should dispatch with child actions', () => {
@@ -215,7 +219,7 @@ describe('useHistory', () => {
 
   describe('undo & redo', () => {
     it('should undo & redo', () => {
-      const { target, state } = setup()
+      const { target, state, onUpdated } = setup()
 
       target.dispatch({
         name: 'ope_a',
@@ -228,24 +232,31 @@ describe('useHistory', () => {
 
       expect(state.value).toBe(20)
       expect(target.getCurrentIndex()).toBe(1)
+      expect(onUpdated).toHaveReturnedTimes(2)
       target.undo()
       expect(state.value).toBe(10)
       expect(target.getCurrentIndex()).toBe(0)
+      expect(onUpdated).toHaveReturnedTimes(3)
       target.undo()
       expect(state.value).toBe(0)
       expect(target.getCurrentIndex()).toBe(-1)
+      expect(onUpdated).toHaveReturnedTimes(4)
       target.undo()
       expect(state.value).toBe(0)
       expect(target.getCurrentIndex()).toBe(-1)
+      expect(onUpdated).toHaveReturnedTimes(4)
       target.redo()
       expect(state.value).toBe(10)
       expect(target.getCurrentIndex()).toBe(0)
+      expect(onUpdated).toHaveReturnedTimes(5)
       target.redo()
       expect(state.value).toBe(20)
       expect(target.getCurrentIndex()).toBe(1)
+      expect(onUpdated).toHaveReturnedTimes(6)
       target.redo()
       expect(state.value).toBe(20)
       expect(target.getCurrentIndex()).toBe(1)
+      expect(onUpdated).toHaveReturnedTimes(6)
     })
 
     it('should dispose redo branch if new action is pushed', () => {
@@ -275,6 +286,51 @@ describe('useHistory', () => {
       expect(state.value).toBe(0)
       target.undo()
       expect(state.value).toBe(0)
+    })
+  })
+
+  describe('jump', () => {
+    it('should jump to the index', () => {
+      const { target, state, onUpdated } = setup()
+
+      target.dispatch({
+        name: 'ope_a',
+        args: 10,
+      })
+      target.dispatch({
+        name: 'ope_a',
+        args: 20,
+      })
+
+      expect(state.value).toBe(20)
+      expect(target.getCurrentIndex()).toBe(1)
+      expect(onUpdated).toHaveReturnedTimes(2)
+
+      target.jump(-1)
+      expect(state.value).toBe(0)
+      expect(target.getCurrentIndex()).toBe(-1)
+      expect(onUpdated).toHaveReturnedTimes(3)
+
+      target.jump(-1)
+      target.jump(-2)
+      expect(onUpdated).toHaveReturnedTimes(3)
+
+      target.jump(1)
+      expect(state.value).toBe(20)
+      expect(target.getCurrentIndex()).toBe(1)
+      expect(onUpdated).toHaveReturnedTimes(4)
+
+      target.jump(1)
+      target.jump(2)
+      expect(onUpdated).toHaveReturnedTimes(4)
+
+      target.jump(0)
+      expect(state.value).toBe(10)
+      expect(target.getCurrentIndex()).toBe(0)
+      expect(onUpdated).toHaveReturnedTimes(5)
+
+      target.jump(0)
+      expect(onUpdated).toHaveReturnedTimes(5)
     })
   })
 
@@ -319,7 +375,8 @@ describe('useHistory', () => {
       target.undo()
 
       const data = target.serialize()
-      const another = useHistory()
+      const onUpdated = jest.fn()
+      const another = useHistory({ onUpdated })
 
       another.defineReducer('ope_a', {
         undo(before: number) {
@@ -334,6 +391,7 @@ describe('useHistory', () => {
 
       another.deserialize(data)
       expect(another.getCurrentIndex()).toBe(0)
+      expect(onUpdated).toHaveReturnedTimes(1)
       another.undo()
       expect(state.value).toBe(0)
       another.redo()
