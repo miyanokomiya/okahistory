@@ -42,10 +42,12 @@ export interface Reducer<RedoArgs, UndoArgs> {
   getLabel?: (action: Action<RedoArgs>) => string
   /**
    * if this value is true, ignore the same action dispatched one after another
+   * default: false
    */
   ignoreDuplication?: boolean
   /**
    * check whether two actions are same to ignore duplication (see ignoreDuplication)
+   * default: (a, b) => a === b
    */
   checkDuplicationFn?: (a: RedoArgs, b: RedoArgs) => boolean
 }
@@ -55,6 +57,7 @@ export interface SavedAction<RedoArgs, UndoArgs> {
   redoArgs: RedoArgs
   undoArgs: UndoArgs
   seriesKey?: string
+  children?: SavedAction<unknown, unknown>[]
 }
 
 interface SerializedState {
@@ -76,12 +79,26 @@ interface HistoryModule {
   ): void
   defineReducers<T extends { [name: ActionName]: Reducer<any, any> }>(
     reducers: T
-  ): <K extends keyof T>(a: {
-    name: K
-    args: Parameters<T[K]['redo']>[0]
-  }) => void
-  // ): <K extends keyof T>(name: K, args: Parameters<T[K]['redo']>[0]) => void
-  dispatch<RedoArgs>(action: Action<RedoArgs>): void
+  ): {
+    dispatch: <K extends keyof T>(
+      action: {
+        name: K
+        args: Parameters<T[K]['redo']>[0]
+      },
+      children?: {
+        name: K
+        args: Parameters<T[K]['redo']>[0]
+      }[]
+    ) => void
+    createAction: <K extends keyof T>(
+      name: K,
+      args: Parameters<T[K]['redo']>[0]
+    ) => { name: K; args: Parameters<T[K]['redo']>[0] }
+  }
+  dispatch<RedoArgs>(
+    action: Action<RedoArgs>,
+    children?: Action<unknown>[]
+  ): void
   redo(): void
   undo(): void
   getCurrentIndex(): number
@@ -117,17 +134,26 @@ export function useHistory(options: HistoryModuleOptions = {}): HistoryModule {
     reducerMap[name] = reducer
   }
 
-  function defineReducers(reducers: {
-    [name: ActionName]: Reducer<unknown, unknown>
-  }) {
+  function defineReducers<
+    RS extends { [name: ActionName]: Reducer<unknown, unknown> }
+  >(reducers: RS) {
     for (const name in reducers) {
       reducerMap[name] = reducers[name]
     }
 
-    return dispatch as any
+    return {
+      dispatch: dispatch as any,
+      createAction: <K extends keyof RS>(
+        name: K,
+        args: Parameters<RS[K]['redo']>[0]
+      ) => ({ name, args }),
+    }
   }
 
-  function dispatch<RedoArgs>(action: Action<RedoArgs>): void {
+  function dispatch(
+    action: Action<unknown>,
+    children?: Action<unknown>[]
+  ): void {
     const reducer = getReducer(reducerMap, action.name)
 
     // check duplication
@@ -140,6 +166,7 @@ export function useHistory(options: HistoryModuleOptions = {}): HistoryModule {
           currentAction.redoArgs
         )
       ) {
+        // TODO: check children
         return
       }
     }
@@ -149,6 +176,14 @@ export function useHistory(options: HistoryModuleOptions = {}): HistoryModule {
       redoArgs: action.args,
       undoArgs: reducer.redo(action.args),
       seriesKey: action.seriesKey,
+      children: children?.map((a) => {
+        const reducer = getReducer(reducerMap, a.name)
+        return {
+          name: a.name,
+          redoArgs: a.args,
+          undoArgs: reducer.redo(a.args),
+        }
+      }),
     })
   }
 
@@ -164,16 +199,28 @@ export function useHistory(options: HistoryModuleOptions = {}): HistoryModule {
       const splitedByKey = splitArray(historyStack, (a) =>
         hasSameSeriesKey(a, savedAction)
       )
-      setHistoryStack(splitedByKey.isFalse)
 
-      historyStack.push({
-        ...savedAction,
-        // last action should inhert undoArgs of the first action having the same seriesKey
-        undoArgs:
-          splitedByKey.isTrue.length > 0
-            ? splitedByKey.isTrue[0].undoArgs
-            : savedAction.undoArgs,
-      })
+      if (splitedByKey.isTrue.length > 0) {
+        const before = splitedByKey.isTrue[0]
+
+        if (isSameTypeSavedAction(before, savedAction)) {
+          const saved = {
+            ...savedAction,
+            // last action should inhert undoArgs of the first action having the same seriesKey
+            undoArgs: before.undoArgs,
+            children: savedAction.children?.map((c, i) => ({
+              ...c,
+              undoArgs: before.children![i].undoArgs,
+            })),
+          }
+
+          setHistoryStack(splitedByKey.isFalse.concat(saved))
+        } else {
+          historyStack.push(savedAction)
+        }
+      } else {
+        historyStack.push(savedAction)
+      }
     } else {
       historyStack.push(savedAction)
     }
@@ -189,6 +236,7 @@ export function useHistory(options: HistoryModuleOptions = {}): HistoryModule {
     if (currentStackIndex < historyStack.length - 1) {
       const current = historyStack[currentStackIndex + 1]
       reducerMap[current.name].redo(current.redoArgs)
+      current.children?.forEach((c) => reducerMap[c.name].redo(c.redoArgs))
       currentStackIndex = currentStackIndex + 1
     }
   }
@@ -196,6 +244,10 @@ export function useHistory(options: HistoryModuleOptions = {}): HistoryModule {
   function undo() {
     if (-1 < currentStackIndex) {
       const current = historyStack[currentStackIndex]
+      current.children
+        ?.concat()
+        .reverse()
+        .forEach((c) => reducerMap[c.name].undo(c.undoArgs))
       reducerMap[current.name].undo(current.undoArgs)
       currentStackIndex = currentStackIndex - 1
     }
@@ -274,4 +326,18 @@ function splitArray<T>(
 
 function defaultCheckDuplicationFn(a: unknown, b: unknown): boolean {
   return a === b
+}
+
+function isSameTypeSavedAction(
+  a: SavedAction<unknown, unknown>,
+  b: SavedAction<unknown, unknown>
+): boolean {
+  return (
+    a.name === b.name &&
+    (a.children === b.children ||
+      (!!a.children &&
+        !!b.children &&
+        a.children.length === b.children.length &&
+        a.children.every((ac, i) => ac.name === b.children![i].name)))
+  )
 }
