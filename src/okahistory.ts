@@ -60,19 +60,19 @@ export interface SavedAction<RedoArgs, UndoArgs> {
   children?: SavedAction<unknown, unknown>[]
 }
 
-interface SerializedState {
+export interface SerializedState {
   version: '0' // independent on the version in package.json
   stack: SavedAction<any, any>[]
   currentStackIndex: number
 }
 
-interface ActionSummary {
+export interface ActionSummary {
   name: ActionName
   label: string
   done: boolean
 }
 
-interface HistoryModule {
+export interface HistoryModule {
   defineReducer<UndoArgs, RedoArgs>(
     name: ActionName,
     reducer: Reducer<RedoArgs, UndoArgs>
