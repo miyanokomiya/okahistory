@@ -42,10 +42,12 @@ export interface Reducer<RedoArgs, UndoArgs> {
   getLabel?: (action: Action<RedoArgs>) => string
   /**
    * if this value is true, ignore the same action dispatched one after another
+   * default: false
    */
   ignoreDuplication?: boolean
   /**
    * check whether two actions are same to ignore duplication (see ignoreDuplication)
+   * default: (a, b) => a === b
    */
   checkDuplicationFn?: (a: RedoArgs, b: RedoArgs) => boolean
 }
@@ -164,6 +166,7 @@ export function useHistory(options: HistoryModuleOptions = {}): HistoryModule {
           currentAction.redoArgs
         )
       ) {
+        // TODO: check children
         return
       }
     }
@@ -196,16 +199,28 @@ export function useHistory(options: HistoryModuleOptions = {}): HistoryModule {
       const splitedByKey = splitArray(historyStack, (a) =>
         hasSameSeriesKey(a, savedAction)
       )
-      setHistoryStack(splitedByKey.isFalse)
 
-      historyStack.push({
-        ...savedAction,
-        // last action should inhert undoArgs of the first action having the same seriesKey
-        undoArgs:
-          splitedByKey.isTrue.length > 0
-            ? splitedByKey.isTrue[0].undoArgs
-            : savedAction.undoArgs,
-      })
+      if (splitedByKey.isTrue.length > 0) {
+        const before = splitedByKey.isTrue[0]
+
+        if (isSameTypeSavedAction(before, savedAction)) {
+          const saved = {
+            ...savedAction,
+            // last action should inhert undoArgs of the first action having the same seriesKey
+            undoArgs: before.undoArgs,
+            children: savedAction.children?.map((c, i) => ({
+              ...c,
+              undoArgs: before.children![i].undoArgs,
+            })),
+          }
+
+          setHistoryStack(splitedByKey.isFalse.concat(saved))
+        } else {
+          historyStack.push(savedAction)
+        }
+      } else {
+        historyStack.push(savedAction)
+      }
     } else {
       historyStack.push(savedAction)
     }
@@ -311,4 +326,18 @@ function splitArray<T>(
 
 function defaultCheckDuplicationFn(a: unknown, b: unknown): boolean {
   return a === b
+}
+
+function isSameTypeSavedAction(
+  a: SavedAction<unknown, unknown>,
+  b: SavedAction<unknown, unknown>
+): boolean {
+  return (
+    a.name === b.name &&
+    (a.children === b.children ||
+      (!!a.children &&
+        !!b.children &&
+        a.children.length === b.children.length &&
+        a.children.every((ac, i) => ac.name === b.children![i].name)))
+  )
 }

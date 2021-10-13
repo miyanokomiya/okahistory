@@ -180,6 +180,36 @@ describe('useHistory', () => {
         expect(state.value).toBe(0)
         expect(state.value2).toBe(0)
       })
+
+      it('replace the last item having the seriesKey and child actions', () => {
+        const { target, state } = setup()
+
+        target.dispatch(
+          {
+            name: 'ope_a',
+            args: 10,
+            seriesKey: 'a',
+          },
+          [{ name: 'ope_b', args: 100 }]
+        )
+        expect(state).toEqual({ value: 10, value2: 100 })
+
+        target.dispatch(
+          {
+            name: 'ope_a',
+            args: 20,
+            seriesKey: 'a',
+          },
+          [{ name: 'ope_b', args: 200 }]
+        )
+        expect(state).toEqual({ value: 20, value2: 200 })
+
+        target.undo()
+        expect(state).toEqual({ value: 0, value2: 0 })
+
+        target.redo()
+        expect(state).toEqual({ value: 20, value2: 200 })
+      })
     })
   })
 
