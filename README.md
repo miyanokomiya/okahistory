@@ -19,22 +19,19 @@ const history = useHistory()
 
 // define your reducers
 const reducerA: Reducer<number, number> = {
-  undo(before) {
-    state.count = before
-  },
   redo(after) {
     const before = state.count
     state.count = after
     return before
   },
+  undo(before) {
+    state.count = before
+  },
 }
-const dispatch = history.defineReducers({ ACTION_A: reducerA })
+const { dispatch, createAction } = history.defineReducers({ ACTION_A: reducerA })
 
 // dispatch an action
-dispatch({
-  name: 'ACTION_A',
-  args: 1,
-})
+dispatch(createAction('ACTION_A', 1))
 
 // undo & redo
 history.undo()

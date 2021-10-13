@@ -1,4 +1,4 @@
-import type { HistoryModuleOptions, Reducer } from '../src/okahistory'
+import type { HistoryModuleOptions } from '../src/okahistory'
 import { useHistory } from '../src/okahistory'
 
 describe('useHistory', () => {
@@ -40,32 +40,46 @@ describe('useHistory', () => {
       const target = useHistory()
       const state = { value: 0, value2: '0' }
 
-      const opeA: Reducer<number, number> = {
-        undo(before: number) {
-          state.value = before
-        },
+      type Reducers = {
+        opeA: {
+          redo: (val: number) => number
+          undo: (val: number) => void
+        }
+        opeB: {
+          redo: (val: string) => { value: number; value2: string }
+          undo: (val: { value: number; value2: string }) => void
+        }
+      }
+
+      const opeA: Reducers['opeA'] = {
         redo(after: number) {
           const before = state.value
           state.value = after
           return before
         },
-      }
-      const opeB: Reducer<string, { value: number; value2: string }> = {
-        undo(before) {
-          state.value2 = before.value2
+        undo(before: number) {
+          state.value = before
         },
+      }
+      const opeB: Reducers['opeB'] = {
         redo(after: string) {
           const before = { ...state }
           state.value2 = after
           return before
         },
+        undo(before) {
+          state.value2 = before.value2
+        },
       }
-      const dispatch = target.defineReducers({ opeA, opeB })
+      const { dispatch, createAction } = target.defineReducers({
+        opeA,
+        opeB,
+      })
 
-      dispatch({ name: 'opeA', args: 10 })
+      dispatch(createAction('opeA', 10))
       expect(state).toEqual({ value: 10, value2: '0' })
-      dispatch({ name: 'opeB', args: '20' })
-      expect(state).toEqual({ value: 10, value2: '20' })
+      dispatch(createAction('opeB', '20'), [createAction('opeA', 20)])
+      expect(state).toEqual({ value: 20, value2: '20' })
     })
   })
 
@@ -94,6 +108,21 @@ describe('useHistory', () => {
         args: 20,
       })
       expect(state.value).toBe(20)
+    })
+
+    it('should dispatch with child actions', () => {
+      const { target, state } = setup()
+
+      target.dispatch({ name: 'ope_a', args: 10 }, [
+        { name: 'ope_b', args: 20 },
+        { name: 'ope_b', args: 30 },
+      ])
+      expect(state).toEqual({ value: 10, value2: 30 })
+      expect(target.getActionSummaries()).toHaveLength(1)
+      target.undo()
+      expect(state).toEqual({ value: 0, value2: 0 })
+      target.redo()
+      expect(state).toEqual({ value: 10, value2: 30 })
     })
 
     describe('option: max', () => {
