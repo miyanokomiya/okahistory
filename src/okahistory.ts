@@ -114,10 +114,15 @@ export interface HistoryModuleOptions {
    * default: 64
    */
   max?: number
+  /**
+   * call this func after the history stack is updated
+   */
+  onUpdated?: () => void
 }
 
 export function useHistory(options: HistoryModuleOptions = {}): HistoryModule {
   const max = options.max ?? 64
+  const onUpdated = options?.onUpdated ?? (() => {})
 
   const reducerMap: { [name: ActionName]: Reducer<any, any> } = {}
   let historyStack: SavedAction<any, any>[] = []
@@ -125,6 +130,7 @@ export function useHistory(options: HistoryModuleOptions = {}): HistoryModule {
 
   function setHistoryStack(val: SavedAction<any, any>[]): void {
     historyStack = val
+    onUpdated()
   }
 
   function defineReducer<UndoArgs, RedoArgs>(
@@ -230,6 +236,7 @@ export function useHistory(options: HistoryModuleOptions = {}): HistoryModule {
     }
 
     currentStackIndex = historyStack.length - 1
+    onUpdated()
   }
 
   function redo() {
@@ -238,6 +245,7 @@ export function useHistory(options: HistoryModuleOptions = {}): HistoryModule {
       reducerMap[current.name].redo(current.redoArgs)
       current.children?.forEach((c) => reducerMap[c.name].redo(c.redoArgs))
       currentStackIndex = currentStackIndex + 1
+      onUpdated()
     }
   }
 
@@ -250,6 +258,7 @@ export function useHistory(options: HistoryModuleOptions = {}): HistoryModule {
         .forEach((c) => reducerMap[c.name].undo(c.undoArgs))
       reducerMap[current.name].undo(current.undoArgs)
       currentStackIndex = currentStackIndex - 1
+      onUpdated()
     }
   }
 
