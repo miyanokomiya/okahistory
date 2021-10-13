@@ -289,6 +289,51 @@ describe('useHistory', () => {
     })
   })
 
+  describe('jump', () => {
+    it('should jump to the index', () => {
+      const { target, state, onUpdated } = setup()
+
+      target.dispatch({
+        name: 'ope_a',
+        args: 10,
+      })
+      target.dispatch({
+        name: 'ope_a',
+        args: 20,
+      })
+
+      expect(state.value).toBe(20)
+      expect(target.getCurrentIndex()).toBe(1)
+      expect(onUpdated).toHaveReturnedTimes(2)
+
+      target.jump(-1)
+      expect(state.value).toBe(0)
+      expect(target.getCurrentIndex()).toBe(-1)
+      expect(onUpdated).toHaveReturnedTimes(3)
+
+      target.jump(-1)
+      target.jump(-2)
+      expect(onUpdated).toHaveReturnedTimes(3)
+
+      target.jump(1)
+      expect(state.value).toBe(20)
+      expect(target.getCurrentIndex()).toBe(1)
+      expect(onUpdated).toHaveReturnedTimes(4)
+
+      target.jump(1)
+      target.jump(2)
+      expect(onUpdated).toHaveReturnedTimes(4)
+
+      target.jump(0)
+      expect(state.value).toBe(10)
+      expect(target.getCurrentIndex()).toBe(0)
+      expect(onUpdated).toHaveReturnedTimes(5)
+
+      target.jump(0)
+      expect(onUpdated).toHaveReturnedTimes(5)
+    })
+  })
+
   describe('getActionSummaries', () => {
     it('should return action summaries', () => {
       const { target } = setup()

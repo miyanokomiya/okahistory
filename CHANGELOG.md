@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [0.0.6] - 2021-10-13
 ### Added
 - `onUpdated` callback can be passed as an option.
+- `jump` method can be used to change current index of the history.
 
 ## [0.0.5] - 2021-10-13
 ### Added

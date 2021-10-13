@@ -101,6 +101,11 @@ interface HistoryModule {
   ): void
   redo(): void
   undo(): void
+  /**
+   * jump to the index
+   * -1 is the oldest index
+   */
+  jump(index: number): void
   getCurrentIndex(): number
   getActionSummaries(): ActionSummary[]
   serialize(): SerializedState
@@ -241,23 +246,43 @@ export function useHistory(options: HistoryModuleOptions = {}): HistoryModule {
 
   function redo() {
     if (currentStackIndex < historyStack.length - 1) {
-      const current = historyStack[currentStackIndex + 1]
-      reducerMap[current.name].redo(current.redoArgs)
-      current.children?.forEach((c) => reducerMap[c.name].redo(c.redoArgs))
-      currentStackIndex = currentStackIndex + 1
+      _redo()
       onUpdated()
     }
   }
 
+  function _redo() {
+    const current = historyStack[currentStackIndex + 1]
+    reducerMap[current.name].redo(current.redoArgs)
+    current.children?.forEach((c) => reducerMap[c.name].redo(c.redoArgs))
+    currentStackIndex = currentStackIndex + 1
+  }
+
   function undo() {
     if (-1 < currentStackIndex) {
-      const current = historyStack[currentStackIndex]
-      current.children
-        ?.concat()
-        .reverse()
-        .forEach((c) => reducerMap[c.name].undo(c.undoArgs))
-      reducerMap[current.name].undo(current.undoArgs)
-      currentStackIndex = currentStackIndex - 1
+      _undo()
+      onUpdated()
+    }
+  }
+
+  function _undo() {
+    const current = historyStack[currentStackIndex]
+    current.children
+      ?.concat()
+      .reverse()
+      .forEach((c) => reducerMap[c.name].undo(c.undoArgs))
+    reducerMap[current.name].undo(current.undoArgs)
+    currentStackIndex = currentStackIndex - 1
+  }
+
+  function jump(index: number) {
+    const target = Math.min(historyStack.length - 1, Math.max(-1, index))
+
+    if (target < currentStackIndex) {
+      ;[...Array(currentStackIndex - target)].forEach(() => _undo())
+      onUpdated()
+    } else if (target > currentStackIndex) {
+      ;[...Array(target - currentStackIndex)].forEach(() => _redo())
       onUpdated()
     }
   }
@@ -296,6 +321,7 @@ export function useHistory(options: HistoryModuleOptions = {}): HistoryModule {
     dispatch,
     redo,
     undo,
+    jump,
     getCurrentIndex: () => currentStackIndex,
     getActionSummaries,
     serialize,
