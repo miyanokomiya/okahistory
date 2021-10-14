@@ -81,14 +81,17 @@ export interface HistoryModule {
     reducers: T
   ): {
     dispatch: <K extends keyof T>(
-      action: {
+      action?: {
         name: K
         args: Parameters<T[K]['redo']>[0]
       },
-      children?: {
-        name: K
-        args: Parameters<T[K]['redo']>[0]
-      }[]
+      children?: (
+        | {
+            name: K
+            args: Parameters<T[K]['redo']>[0]
+          }
+        | undefined
+      )[]
     ) => void
     createAction: <K extends keyof T>(
       name: K,
@@ -96,8 +99,8 @@ export interface HistoryModule {
     ) => { name: K; args: Parameters<T[K]['redo']>[0] }
   }
   dispatch<RedoArgs>(
-    action: Action<RedoArgs>,
-    children?: Action<unknown>[]
+    action?: Action<RedoArgs>,
+    children?: (Action<unknown> | undefined)[]
   ): void
   redo(): void
   undo(): void
@@ -162,9 +165,10 @@ export function useHistory(options: HistoryModuleOptions = {}): HistoryModule {
   }
 
   function dispatch(
-    action: Action<unknown>,
-    children?: Action<unknown>[]
+    action?: Action<unknown>,
+    children?: (Action<unknown> | undefined)[]
   ): void {
+    if (!action) return
     const reducer = getReducer(reducerMap, action.name)
 
     // check duplication
@@ -187,14 +191,16 @@ export function useHistory(options: HistoryModuleOptions = {}): HistoryModule {
       redoArgs: action.args,
       undoArgs: reducer.redo(action.args),
       seriesKey: action.seriesKey,
-      children: children?.map((a) => {
-        const reducer = getReducer(reducerMap, a.name)
-        return {
-          name: a.name,
-          redoArgs: a.args,
-          undoArgs: reducer.redo(a.args),
-        }
-      }),
+      children: children
+        ?.filter((a): a is Exclude<typeof a, undefined> => !!a)
+        .map((a) => {
+          const reducer = getReducer(reducerMap, a.name)
+          return {
+            name: a.name,
+            redoArgs: a.args,
+            undoArgs: reducer.redo(a.args),
+          }
+        }),
     })
   }
 

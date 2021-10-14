@@ -96,6 +96,32 @@ describe('useHistory', () => {
       ).toThrow('not found a reducer for the action: unknown')
     })
 
+    it('should do nothing if an action of 1st arg is undefined', () => {
+      const { target, onUpdated } = setup()
+
+      target.dispatch()
+      expect(onUpdated).toHaveReturnedTimes(0)
+
+      target.dispatch(undefined, [
+        {
+          name: 'ope_a',
+          args: 20,
+        },
+      ])
+      expect(onUpdated).toHaveReturnedTimes(0)
+    })
+
+    it('should ignore undefined actions in 2nd arg', () => {
+      const { target, state, onUpdated } = setup()
+
+      target.dispatch({ name: 'ope_a', args: 20 }, [
+        undefined,
+        { name: 'ope_b', args: 'b' },
+      ])
+      expect(state).toEqual({ value: 20, value2: 'b' })
+      expect(onUpdated).toHaveReturnedTimes(1)
+    })
+
     it('should save actions', () => {
       const { target, state, onUpdated } = setup()
 
