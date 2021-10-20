@@ -126,11 +126,17 @@ export interface HistoryModuleOptions {
    * call this func after the history stack is updated
    */
   onUpdated?: () => void
+  /**
+   * avoid overriding duplicated reducers
+   * default: false
+   */
+  avoidOverriding?: boolean
 }
 
 export function useHistory(options: HistoryModuleOptions = {}): HistoryModule {
   const max = options.max ?? 64
   const onUpdated = options?.onUpdated ?? (() => {})
+  const avoidOverriding = options?.avoidOverriding ?? false
 
   const reducerMap: { [name: ActionName]: Reducer<any, any> } = {}
   let historyStack: SavedAction<any, any>[] = []
@@ -141,18 +147,28 @@ export function useHistory(options: HistoryModuleOptions = {}): HistoryModule {
     onUpdated()
   }
 
+  function setReducer(name: string, reducer: Reducer<any, any>) {
+    if (avoidOverriding && reducerMap[name]) {
+      throw new Error(
+        `The name of this reducer has been defined already. name: ${name}` +
+          'Rename it or see `avoidOverriding` option.'
+      )
+    }
+    reducerMap[name] = reducer
+  }
+
   function defineReducer<UndoArgs, RedoArgs>(
     name: ActionName,
     reducer: Reducer<RedoArgs, UndoArgs>
   ) {
-    reducerMap[name] = reducer
+    setReducer(name, reducer)
   }
 
   function defineReducers<
     RS extends { [name: ActionName]: Reducer<unknown, unknown> }
   >(reducers: RS) {
     for (const name in reducers) {
-      reducerMap[name] = reducers[name]
+      setReducer(name, reducers[name])
     }
 
     return {
