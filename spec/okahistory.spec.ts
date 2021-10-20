@@ -1,4 +1,4 @@
-import type { HistoryModuleOptions } from '../src/okahistory'
+import type { HistoryModuleOptions, Reducer } from '../src/okahistory'
 import { useHistory } from '../src/okahistory'
 
 describe('useHistory', () => {
@@ -82,6 +82,31 @@ describe('useHistory', () => {
       expect(state).toEqual({ value: 10, value2: '0' })
       dispatch(createAction('opeB', '20'), [createAction('opeA', 20)])
       expect(state).toEqual({ value: 20, value2: '20' })
+    })
+
+    it('should avoid overriding reducers if avoidOverriding option is true', () => {
+      const target1 = useHistory({ avoidOverriding: false })
+      const target2 = useHistory({ avoidOverriding: true })
+      const reducer: Reducer<void, void> = {
+        redo() {},
+        undo() {},
+      }
+
+      target1.defineReducer('A', reducer)
+      target2.defineReducer('A', reducer)
+
+      expect(() => {
+        target1.defineReducer('A', reducer)
+      }).not.toThrow()
+      expect(() => {
+        target2.defineReducer('A', reducer)
+      }).toThrow()
+      expect(() => {
+        target1.defineReducers({ A: reducer })
+      }).not.toThrow()
+      expect(() => {
+        target2.defineReducers({ A: reducer })
+      }).toThrow()
     })
   })
 

@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+### Added
+- Add `avoidOverriding` option to avoid overriding duplicated reducers.
+
 ## [0.0.7] - 2021-10-14
 ### Changed
 - `dispatch` can accept `undefined` as an action, and it is just ignored.
