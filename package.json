@@ -1,6 +1,6 @@
 {
   "name": "okahistory",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "main": "./dist/okahistory.min.js",
   "module": "./dist/okahistory.esm.min.js",
   "types": "./dist/okahistory.d.ts",
