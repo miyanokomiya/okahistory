@@ -1,5 +1,5 @@
 module.exports = {
-  testEnvironment: 'jsdom',
+  testEnvironment: 'node',
   collectCoverageFrom: ['src/**/*.ts'],
   globals: {
     'ts-jest': {},
