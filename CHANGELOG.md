@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.0] - 2023-02-04
+### Changed
+- Replace build packages to rollup + esbuild.
+
 ## [0.0.9] - 2022-06-27
 ### Changed
 - Bump dependencies
